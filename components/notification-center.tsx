@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Bell, Check, CheckCheck, Trash2, X, ExternalLink } from 'lucide-react'
+import { Bell, Check, CheckCheck, Trash2, X, MessageSquare, Calendar, AlertTriangle, Info } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -16,14 +16,11 @@ import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { useNotifications, type Notification } from '@/hooks/use-notifications'
 
-const notificationTypeStyles: Record<Notification['type'], { bg: string; text: string; icon: string }> = {
-  info: { bg: 'bg-blue-100', text: 'text-blue-700', icon: 'bg-blue-500' },
-  success: { bg: 'bg-green-100', text: 'text-green-700', icon: 'bg-green-500' },
-  warning: { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: 'bg-yellow-500' },
-  error: { bg: 'bg-red-100', text: 'text-red-700', icon: 'bg-red-500' },
-  lead: { bg: 'bg-purple-100', text: 'text-purple-700', icon: 'bg-purple-500' },
-  campaign: { bg: 'bg-indigo-100', text: 'text-indigo-700', icon: 'bg-indigo-500' },
-  system: { bg: 'bg-gray-100', text: 'text-gray-700', icon: 'bg-gray-500' },
+const notificationTypeStyles: Record<Notification['type'], { bg: string; text: string; iconBg: string; Icon: typeof MessageSquare }> = {
+  reply: { bg: 'bg-chart-2/10', text: 'text-chart-2', iconBg: 'bg-chart-2', Icon: MessageSquare },
+  meeting: { bg: 'bg-chart-4/10', text: 'text-chart-4', iconBg: 'bg-chart-4', Icon: Calendar },
+  system: { bg: 'bg-muted', text: 'text-muted-foreground', iconBg: 'bg-muted-foreground', Icon: Info },
+  warning: { bg: 'bg-destructive/10', text: 'text-destructive', iconBg: 'bg-destructive', Icon: AlertTriangle },
 }
 
 function NotificationItem({ 
@@ -36,6 +33,16 @@ function NotificationItem({
   onDelete: (id: string) => void
 }) {
   const styles = notificationTypeStyles[notification.type]
+  const IconComponent = styles.Icon
+  
+  // Build link based on notification type
+  const getLink = () => {
+    if (notification.lead_id) return `/leads/${notification.lead_id}`
+    if (notification.campaign_id) return `/campaigns/${notification.campaign_id}`
+    return null
+  }
+  
+  const link = getLink()
   
   return (
     <div
@@ -45,7 +52,9 @@ function NotificationItem({
       )}
     >
       <div className="flex items-start gap-3">
-        <div className={cn('w-2 h-2 rounded-full mt-2 shrink-0', styles.icon)} />
+        <div className={cn('w-8 h-8 rounded-full flex items-center justify-center shrink-0', styles.iconBg)}>
+          <IconComponent className="h-4 w-4 text-white" />
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
@@ -56,7 +65,7 @@ function NotificationItem({
                 {notification.message}
               </p>
             </div>
-            <Badge variant="outline" className={cn('text-xs shrink-0', styles.bg, styles.text)}>
+            <Badge variant="outline" className={cn('text-xs shrink-0 capitalize', styles.bg, styles.text)}>
               {notification.type}
             </Badge>
           </div>
@@ -66,10 +75,10 @@ function NotificationItem({
               {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
             </span>
             <div className="flex items-center gap-1">
-              {notification.link && (
+              {link && (
                 <Button variant="ghost" size="icon" className="h-6 w-6" asChild>
-                  <Link href={notification.link}>
-                    <ExternalLink className="h-3 w-3" />
+                  <Link href={link}>
+                    <span className="text-xs">View</span>
                   </Link>
                 </Button>
               )}

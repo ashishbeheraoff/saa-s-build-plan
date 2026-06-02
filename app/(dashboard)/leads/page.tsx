@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -41,46 +43,47 @@ import {
   Sheet,
   ChevronDown,
 } from "lucide-react";
-import { mockLeads, mockCampaigns, type Lead } from "@/lib/mock-data";
+import type { Lead, Campaign } from "@/lib/supabase/queries";
+import { updateLead } from "@/lib/supabase/mutations";
 
-const stateColors: Record<string, string> = {
+interface LeadWithCampaign extends Lead {
+  campaign: { id: string; name: string } | null;
+}
+
+const statusColors: Record<string, string> = {
   new: "bg-secondary text-secondary-foreground",
-  connected: "bg-chart-2 text-foreground",
-  messaged: "bg-chart-3 text-foreground",
-  replied: "bg-chart-4 text-foreground",
-  qualified: "bg-primary text-primary-foreground",
-  meeting_booked: "bg-primary text-primary-foreground",
+  contacted: "bg-chart-2 text-foreground",
+  replied: "bg-chart-3 text-foreground",
+  meeting: "bg-chart-4 text-foreground",
   converted: "bg-primary text-primary-foreground",
-  disqualified: "bg-destructive text-destructive-foreground",
+  unsubscribed: "bg-destructive text-destructive-foreground",
 };
 
-const stateOptions = [
-  { value: "all", label: "All States" },
+const statusOptions = [
+  { value: "all", label: "All Status" },
   { value: "new", label: "New" },
-  { value: "connected", label: "Connected" },
-  { value: "messaged", label: "Messaged" },
+  { value: "contacted", label: "Contacted" },
   { value: "replied", label: "Replied" },
-  { value: "qualified", label: "Qualified" },
-  { value: "meeting_booked", label: "Meeting Booked" },
+  { value: "meeting", label: "Meeting" },
   { value: "converted", label: "Converted" },
-  { value: "disqualified", label: "Disqualified" },
+  { value: "unsubscribed", label: "Unsubscribed" },
 ];
 
-const EXPORT_COLUMNS = ["Name", "Title", "Company", "LinkedIn URL", "Campaign", "State", "Last Activity"];
+const EXPORT_COLUMNS = ["Name", "Title", "Company", "Email", "Campaign", "Status", "Last Contacted"];
 
-function leadsToRows(leads: Lead[]) {
+function leadsToRows(leads: LeadWithCampaign[]) {
   return leads.map((lead) => [
     lead.name,
-    lead.title,
-    lead.company,
-    lead.linkedinUrl,
-    lead.campaignName,
-    lead.state.replace("_", " "),
-    new Date(lead.lastMessageAt).toLocaleDateString(),
+    lead.title || "",
+    lead.company || "",
+    lead.email,
+    lead.campaign?.name || "No campaign",
+    lead.status,
+    lead.last_contacted ? new Date(lead.last_contacted).toLocaleDateString() : "Never",
   ]);
 }
 
-function exportCSV(leads: Lead[], filename = "leads") {
+function exportCSV(leads: LeadWithCampaign[], filename = "leads") {
   const rows = [EXPORT_COLUMNS, ...leadsToRows(leads)];
   const csv = rows.map((r) => r.map((v) => `"${v}"`).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -92,7 +95,7 @@ function exportCSV(leads: Lead[], filename = "leads") {
   URL.revokeObjectURL(url);
 }
 
-async function exportPDF(leads: Lead[], filename = "leads") {
+async function exportPDF(leads: LeadWithCampaign[], filename = "leads") {
   const { default: jsPDF } = await import("jspdf");
   const { default: autoTable } = await import("jspdf-autotable");
   const doc = new jsPDF({ orientation: "landscape" });
@@ -112,17 +115,34 @@ async function exportPDF(leads: Lead[], filename = "leads") {
   doc.save(`${filename}.pdf`);
 }
 
+async function fetchLeads(): Promise<LeadWithCampaign[]> {
+  const res = await fetch("/api/leads");
+  if (!res.ok) throw new Error("Failed to fetch leads");
+  return res.json();
+}
+
+async function fetchCampaigns(): Promise<Campaign[]> {
+  const res = await fetch("/api/campaigns");
+  if (!res.ok) throw new Error("Failed to fetch campaigns");
+  return res.json();
+}
+
 export default function LeadsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [campaignFilter, setCampaignFilter] = useState(searchParams.get("campaign") || "all");
-  const [stateFilter, setStateFilter] = useState(searchParams.get("state") || "all");
-  const [showDisqualified, setShowDisqualified] = useState(
-    searchParams.get("disqualified") === "true"
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "all");
+  const [showUnsubscribed, setShowUnsubscribed] = useState(
+    searchParams.get("unsubscribed") === "true"
   );
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
+
+  const { data: leads, isLoading: leadsLoading, mutate } = useSWR<LeadWithCampaign[]>("leads", fetchLeads);
+  const { data: campaigns, isLoading: campaignsLoading } = useSWR<Campaign[]>("campaigns", fetchCampaigns);
+
+  const isLoading = leadsLoading || campaignsLoading;
 
   const updateUrl = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -137,35 +157,35 @@ export default function LeadsPage() {
   };
 
   const filteredLeads = useMemo(() => {
-    return mockLeads.filter((lead) => {
+    return (leads || []).filter((lead) => {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchesSearch =
           lead.name.toLowerCase().includes(query) ||
-          lead.company.toLowerCase().includes(query) ||
-          lead.title.toLowerCase().includes(query);
+          (lead.company?.toLowerCase().includes(query) || false) ||
+          (lead.title?.toLowerCase().includes(query) || false);
         if (!matchesSearch) return false;
       }
 
       // Campaign filter
-      if (campaignFilter !== "all" && lead.campaignId !== campaignFilter) {
+      if (campaignFilter !== "all" && lead.campaign_id !== campaignFilter) {
         return false;
       }
 
-      // State filter
-      if (stateFilter !== "all" && lead.state !== stateFilter) {
+      // Status filter
+      if (statusFilter !== "all" && lead.status !== statusFilter) {
         return false;
       }
 
-      // Disqualified toggle
-      if (!showDisqualified && lead.state === "disqualified") {
+      // Unsubscribed toggle
+      if (!showUnsubscribed && lead.status === "unsubscribed") {
         return false;
       }
 
       return true;
     });
-  }, [searchQuery, campaignFilter, stateFilter, showDisqualified]);
+  }, [leads, searchQuery, campaignFilter, statusFilter, showUnsubscribed]);
 
   const handleSelectAll = () => {
     if (selectedLeads.length === filteredLeads.length) {
@@ -183,21 +203,28 @@ export default function LeadsPage() {
     );
   };
 
-  const handleBulkDisqualify = () => {
-    console.log("Disqualifying leads:", selectedLeads);
-    setSelectedLeads([]);
+  const handleBulkUnsubscribe = async () => {
+    try {
+      await Promise.all(
+        selectedLeads.map((id) => updateLead(id, { status: "unsubscribed" }))
+      );
+      setSelectedLeads([]);
+      mutate();
+    } catch (error) {
+      console.error("Failed to unsubscribe leads:", error);
+    }
   };
 
   const clearFilters = () => {
     setSearchQuery("");
     setCampaignFilter("all");
-    setStateFilter("all");
-    setShowDisqualified(false);
+    setStatusFilter("all");
+    setShowUnsubscribed(false);
     router.push("/leads");
   };
 
   const hasActiveFilters =
-    searchQuery || campaignFilter !== "all" || stateFilter !== "all" || showDisqualified;
+    searchQuery || campaignFilter !== "all" || statusFilter !== "all" || showUnsubscribed;
 
   return (
     <div className="space-y-6">
@@ -281,7 +308,7 @@ export default function LeadsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Campaigns</SelectItem>
-                {mockCampaigns.map((campaign) => (
+                {(campaigns || []).map((campaign) => (
                   <SelectItem key={campaign.id} value={campaign.id}>
                     {campaign.name}
                   </SelectItem>
@@ -290,17 +317,17 @@ export default function LeadsPage() {
             </Select>
 
             <Select
-              value={stateFilter}
+              value={statusFilter}
               onValueChange={(value) => {
-                setStateFilter(value);
-                updateUrl({ state: value });
+                setStatusFilter(value);
+                updateUrl({ status: value });
               }}
             >
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="All States" />
+                <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                {stateOptions.map((option) => (
+                {statusOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -310,13 +337,13 @@ export default function LeadsPage() {
 
             <label className="flex items-center gap-2 cursor-pointer">
               <Checkbox
-                checked={showDisqualified}
+                checked={showUnsubscribed}
                 onCheckedChange={(checked) => {
-                  setShowDisqualified(!!checked);
-                  updateUrl({ disqualified: checked ? "true" : null });
+                  setShowUnsubscribed(!!checked);
+                  updateUrl({ unsubscribed: checked ? "true" : null });
                 }}
               />
-              <span className="text-sm">Show disqualified</span>
+              <span className="text-sm">Show unsubscribed</span>
             </label>
 
             {hasActiveFilters && (
@@ -340,10 +367,10 @@ export default function LeadsPage() {
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={handleBulkDisqualify}
+                onClick={handleBulkUnsubscribe}
               >
                 <Ban className="h-4 w-4 mr-2" />
-                Disqualify Selected
+                Unsubscribe Selected
               </Button>
             </div>
           </CardContent>
@@ -374,13 +401,28 @@ export default function LeadsPage() {
                 <TableHead>Title</TableHead>
                 <TableHead>Company</TableHead>
                 <TableHead>Campaign</TableHead>
-                <TableHead>State</TableHead>
-                <TableHead>Last Activity</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Last Contacted</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredLeads.length === 0 ? (
+              {isLoading ? (
+                <>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                    </TableRow>
+                  ))}
+                </>
+              ) : filteredLeads.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     No leads found matching your filters
@@ -396,18 +438,20 @@ export default function LeadsPage() {
                       />
                     </TableCell>
                     <TableCell className="font-medium">{lead.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{lead.title}</TableCell>
-                    <TableCell className="text-muted-foreground">{lead.company}</TableCell>
+                    <TableCell className="text-muted-foreground">{lead.title || "-"}</TableCell>
+                    <TableCell className="text-muted-foreground">{lead.company || "-"}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {lead.campaignName}
+                      {lead.campaign?.name || "No campaign"}
                     </TableCell>
                     <TableCell>
-                      <Badge className={stateColors[lead.state]} variant="secondary">
-                        {lead.state.replace("_", " ")}
+                      <Badge className={statusColors[lead.status]} variant="secondary">
+                        {lead.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground font-mono text-xs">
-                      {new Date(lead.lastMessageAt).toLocaleDateString()}
+                      {lead.last_contacted 
+                        ? new Date(lead.last_contacted).toLocaleDateString()
+                        : "Never"}
                     </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="icon" asChild>

@@ -9,10 +9,10 @@ export interface Notification {
   user_id: string
   title: string
   message: string
-  type: 'info' | 'success' | 'warning' | 'error' | 'lead' | 'campaign' | 'system'
+  type: 'reply' | 'meeting' | 'system' | 'warning'
   read: boolean
-  link?: string
-  metadata?: Record<string, unknown>
+  lead_id?: string | null
+  campaign_id?: string | null
   created_at: string
 }
 
@@ -135,8 +135,8 @@ export function useNotifications() {
             setUnreadCount(prev => prev + 1)
             
             // Show browser notification if permitted
-            if (Notification.permission === 'granted') {
-              new Notification(newNotification.title, {
+            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+              new window.Notification(newNotification.title, {
                 body: newNotification.message,
                 icon: '/favicon.ico',
               })
@@ -186,7 +186,7 @@ export function useNotifications() {
 
   // Request browser notification permission
   const requestNotificationPermission = useCallback(async () => {
-    if ('Notification' in window && Notification.permission === 'default') {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
       await Notification.requestPermission()
     }
   }, [])
