@@ -1,0 +1,207 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-heading: var(--font-heading);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+/* ─────────────────────────────────────────────
+   LeadRaider Design Tokens
+   Primary: #7C3AED  Secondary: #06B6D4  Accent: #8B5CF6
+──────────────────────────────────────────────── */
+
+/* LIGHT MODE — :root (no class needed) */
+:root {
+  --background: 0 0% 99%;
+  --foreground: 240 10% 8%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 8%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 8%;
+
+  /* Primary: #7C3AED */
+  --primary: 263 72% 57%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Secondary: #06B6D4 */
+  --secondary: 192 91% 44%;
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 240 5% 94%;
+  --muted-foreground: 240 4% 46%;
+
+  /* Accent: #8B5CF6 */
+  --accent: 258 89% 66%;
+  --accent-foreground: 0 0% 100%;
+
+  /* Error: #EF4444 */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Success: #10B981 */
+  --success: 160 84% 39%;
+  --success-foreground: 0 0% 100%;
+
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 10%;
+
+  --border: 240 6% 90%;
+  --input: 240 6% 90%;
+  --ring: 263 72% 57%;
+
+  --chart-1: 263 72% 57%;
+  --chart-2: 192 91% 44%;
+  --chart-3: 258 89% 66%;
+  --chart-4: 38 92% 50%;
+  --chart-5: 0 84% 60%;
+
+  --radius: 0.45rem;
+
+  --sidebar: 240 5% 97%;
+  --sidebar-foreground: 240 10% 8%;
+  --sidebar-primary: 263 72% 57%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 5% 92%;
+  --sidebar-accent-foreground: 240 10% 8%;
+  --sidebar-border: 240 6% 88%;
+  --sidebar-ring: 263 72% 57%;
+}
+
+/* DARK MODE — .dark class on <html> */
+.dark {
+  /* Background: #0A0A0B */
+  --background: 270 5% 4%;
+  --foreground: 0 0% 98%;
+
+  /* Card: #18181B */
+  --card: 240 5% 11%;
+  --card-foreground: 0 0% 98%;
+
+  /* Popover / Surface: #111113 */
+  --popover: 240 5% 7%;
+  --popover-foreground: 0 0% 98%;
+
+  /* Primary: #7C3AED */
+  --primary: 263 72% 57%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Secondary: #06B6D4 */
+  --secondary: 192 91% 44%;
+  --secondary-foreground: 0 0% 100%;
+
+  /* Muted — Text Secondary: #A1A1AA */
+  --muted: 240 5% 14%;
+  --muted-foreground: 240 5% 65%;
+
+  /* Accent: #8B5CF6 */
+  --accent: 258 89% 66%;
+  --accent-foreground: 0 0% 100%;
+
+  /* Error: #EF4444 */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Success: #10B981 */
+  --success: 160 84% 39%;
+  --success-foreground: 0 0% 100%;
+
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 10%;
+
+  /* Border: #27272A */
+  --border: 240 4% 16%;
+  --input: 240 5% 14%;
+  --ring: 263 72% 57%;
+
+  --chart-1: 263 72% 57%;
+  --chart-2: 192 91% 44%;
+  --chart-3: 258 89% 66%;
+  --chart-4: 38 92% 50%;
+  --chart-5: 0 84% 60%;
+
+  --radius: 0.45rem;
+
+  /* Sidebar: #111113 */
+  --sidebar: 240 5% 7%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-primary: 263 72% 57%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 5% 12%;
+  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-border: 240 4% 13%;
+  --sidebar-ring: 263 72% 57%;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Pulsing dot animation */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Slim scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: hsl(240 5% 94%); }
+::-webkit-scrollbar-thumb { background: hsl(240 4% 78%); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(240 4% 65%); }
+
+.dark ::-webkit-scrollbar-track { background: hsl(240 5% 7%); }
+.dark ::-webkit-scrollbar-thumb { background: hsl(240 4% 20%); border-radius: 3px; }
+.dark ::-webkit-scrollbar-thumb:hover { background: hsl(240 4% 30%); }
